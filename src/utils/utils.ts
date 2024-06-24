@@ -4,7 +4,10 @@ import { createWalletClient, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import TimeAgo from "javascript-time-ago";
 import en from "javascript-time-ago/locale/en";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { chains } from "./constants";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../pages/api/auth/[...nextauth]";
 
 TimeAgo.addDefaultLocale(en);
 // Create formatter (English).
@@ -72,3 +75,34 @@ export const isValidObjectId = (id: string) => {
   const validate = new RegExp("^[0-9a-fA-F]{24}$");
   return validate.test(id);
 };
+
+export type RequestTypes = "POST" | "GET" | "PUT" | "DELETE"
+
+export const processRequest = (wantedMethod: RequestTypes, req : NextApiRequest, res : NextApiResponse, exec: Function) => {
+  const { method, body } = req;
+
+  async function session() {
+    try {
+      const session = await getServerSession(
+        req,
+        res,
+        await authOptions(req, res)
+      );
+
+      if (session) {
+        exec();
+      } else {
+        return res.status(401).json({ message: "Invalid Session!" });
+      }
+    } catch (e) {
+      console.log("error", e);
+      return res.status(500).json({ message: "Something went wrong!" });
+    }
+  }
+
+  if (method === wantedMethod) {
+    session();
+  } else {
+    return res.status(405).json({ message: "Method Not Allowed!" });
+  }
+}

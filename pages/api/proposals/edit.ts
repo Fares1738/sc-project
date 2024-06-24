@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { getUserByAddress } from "../../../prisma/operations/users/read";
+import { getUserByAddress, isUserAdmin } from "../../../prisma/operations/users/read";
 import {
   activateProposal,
   publishProposal,
@@ -9,6 +9,8 @@ import {
 } from "../../../prisma/operations/proposals/put";
 import { SnapshotGraphQL } from "@/snapshot/graphql/SnapshotGraphQL";
 import { spaceName } from "@/snapshot/config";
+import { processRequest } from "@/utils/utils";
+import { createProposal } from "../../../prisma/operations/proposals/create";
 
 type ResponseData = {
   message: string;
@@ -18,19 +20,19 @@ export default function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  const { method, body } = req;
+  const { body } = req;
   const { action, proposalId, title, content, proposalDigest } = body;
 
-  async function session() {
-    try {
-      const session = await getServerSession(
-        req,
-        res,
-        await authOptions(req, res)
-      );
+  processRequest("POST", req, res, async () => {
+    const session = await getServerSession(
+      req,
+      res,
+      await authOptions(req, res)
+    );
 
-      if (session) {
-        const u = await getUserByAddress(session.address);
+    if(session) {
+      //
+      const u = await getUserByAddress(session.address);
         if (u && ["ADMIN", "CM"].includes(u.userType)) {
           switch (action) {
             case "updateInfo":
@@ -73,18 +75,6 @@ export default function handler(
         } else {
           return res.status(401).json({ message: "Unauthorized Access!" });
         }
-      } else {
-        return res.status(401).json({ message: "Invalid Session!" });
-      }
-    } catch (e) {
-      console.log("error", e);
-      return res.status(500).json({ message: "Something went wrong!" });
     }
-  }
-
-  if (method === "POST") {
-    session();
-  } else {
-    return res.status(405).json({ message: "Method Not Allowed!" });
-  }
+  });
 }

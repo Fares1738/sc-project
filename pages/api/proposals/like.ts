@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]";
 import { processLike } from "../../../prisma/operations/proposals/put";
 import { getUserByAddress } from "../../../prisma/operations/users/read";
 import { getProposalById } from "../../../prisma/operations/proposals/read";
+import { processRequest } from "@/utils/utils";
 
 export default function handler(
   req: NextApiRequest,
@@ -11,19 +12,19 @@ export default function handler(
     message: string;
   }>
 ) {
-  const { method, body } = req;
+  const { body } = req;
   const { proposalId } = body;
 
-  async function session() {
-    try {
-      const session = await getServerSession(
-        req,
-        res,
-        await authOptions(req, res)
-      );
+  processRequest("POST", req, res, async () => {
+    const session = await getServerSession(
+      req,
+      res,
+      await authOptions(req, res)
+    );
 
-      if (session) {
-        const address = session.address;
+    if(session) {
+      //
+      const address = session.address;
         if (session.address) {
           // validate session address
           const userResult = await getUserByAddress(address);
@@ -43,18 +44,7 @@ export default function handler(
         } else {
           return res.status(401).json({ message: "Invalid Address!" });
         }
-      } else {
-        return res.status(401).json({ message: "Invalid Session!" });
-      }
-    } catch (e) {
-      console.log("error", e);
-      return res.status(500).json({ message: "Something went wrong!" });
     }
-  }
+  });
 
-  if (method === "POST") {
-    session();
-  } else {
-    return res.status(405).json({ message: "Method Not Allowed!" });
-  }
 }
