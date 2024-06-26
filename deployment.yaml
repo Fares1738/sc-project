@@ -17,4 +17,4 @@ spec:
         image: fares223/vikingssc
         imagePullPolicy: ifNotPresent
         ports:
-        - containerPort: 8084
+        - containerPort: 8080

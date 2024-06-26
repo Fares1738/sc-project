@@ -8,5 +8,5 @@ selector:
   app: vikingsSC
 ports:
 - protocol: TCP
-  port: 8084
-  targetPort: 8084
+  port: 8080
+  targetPort: 8080
